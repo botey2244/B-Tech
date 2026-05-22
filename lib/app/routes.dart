@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/category_screen.dart';
 import '../screens/contact_seller_screen.dart';
 import '../screens/cart_screen.dart';
 import '../screens/forgot_password_screen.dart';
@@ -11,6 +12,7 @@ import '../screens/product_detail_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/reset_password_screen.dart';
+import '../screens/receipt_screen.dart';
 import '../screens/wishlist_screen.dart';
 
 class Routes {
@@ -20,8 +22,10 @@ class Routes {
   static const String forgotPassword = '/forgot-password';
   static const String verifyCode = '/verify-code';
   static const String resetPassword = '/reset-password';
+  static const String receipt = '/receipt';
   static const String passwordUpdated = '/password-updated';
   static const String home = '/home';
+  static const String categories = '/categories';
   static const String productDetail = '/product-detail';
   static const String cart = '/cart';
   static const String profile = '/profile';
@@ -39,12 +43,16 @@ class Routes {
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
       case resetPassword:
         return MaterialPageRoute(builder: (_) => const ResetPasswordScreen());
+      case receipt:
+        return MaterialPageRoute(builder: (_) => const ReceiptScreen());
       case passwordUpdated:
         return MaterialPageRoute(
           builder: (_) => const PasswordUpdatedScreen(),
         );
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
+      case categories:
+        return MaterialPageRoute(builder: (_) => const CategoryScreen());
       case productDetail:
         return MaterialPageRoute(builder: (_) => const ProductDetailScreen());
       case cart:

@@ -63,8 +63,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    final name = _nameController.text.trim();
     final authProvider = context.read<AuthProvider>();
-    await authProvider.register(email, password);
+    await authProvider.register(name, email, password);
 
     if (!mounted) return;
 
@@ -87,13 +88,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isShortScreen = constraints.maxHeight < 740;
+            final horizontalPadding = constraints.maxWidth < 360 ? 24.0 : 64.0;
+
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 64),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
                   children: [
-                    SizedBox(height: constraints.maxHeight * 0.18),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.06 : 0.18),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -128,14 +134,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         letterSpacing: 0,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    SizedBox(height: isShortScreen ? 24 : 48),
                     _RegisterTextField(
                       controller: _nameController,
                       hintText: 'Full Name',
                       icon: Icons.mail_outline_rounded,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: isShortScreen ? 14 : 22),
                     _RegisterTextField(
                       controller: _emailController,
                       hintText: 'Email or Phone',
@@ -143,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: isShortScreen ? 14 : 22),
                     _RegisterTextField(
                       controller: _passwordController,
                       hintText: 'Password',
@@ -163,7 +169,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: isShortScreen ? 14 : 22),
                     _RegisterTextField(
                       controller: _confirmPasswordController,
                       hintText: 'Confirm Password',
@@ -194,7 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 18),
                     SizedBox(
-                      width: 232,
+                      width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _signUp,
@@ -228,16 +234,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                       ),
                     ),
-                    SizedBox(height: constraints.maxHeight * 0.07),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.025 : 0.07),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Already have an account? ',
-                          style: TextStyle(
-                            color: Color(0xFF444444),
-                            fontSize: 13,
-                            letterSpacing: 0,
+                        const Flexible(
+                          child: Text(
+                            'Already have an account? ',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF444444),
+                              fontSize: 13,
+                              letterSpacing: 0,
+                            ),
                           ),
                         ),
                         GestureDetector(

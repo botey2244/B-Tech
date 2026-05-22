@@ -46,9 +46,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset link sent.')),
+      const SnackBar(
+        content: Text('Password reset link sent. Check your email.'),
+      ),
     );
-    Navigator.pushNamed(context, Routes.verifyCode);
+    Navigator.pushReplacementNamed(
+      context,
+      Routes.login,
+    );
   }
 
   @override
@@ -60,13 +65,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isShortScreen = constraints.maxHeight < 700;
+            final horizontalPadding = constraints.maxWidth < 360 ? 24.0 : 68.0;
+
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 68),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
                   children: [
-                    SizedBox(height: constraints.maxHeight * 0.22),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.1 : 0.22),
+                    ),
                     const Text(
                       'Forgot Password?',
                       textAlign: TextAlign.center,
@@ -79,9 +89,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: 18),
                     const SizedBox(
-                      width: 292,
+                      width: double.infinity,
                       child: Text(
-                        "Enter your email address and we'll send you a\nlink to reset your password.",
+                        "Enter your email address and we'll send you a link to reset your password.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -91,13 +101,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 34),
+                    SizedBox(height: isShortScreen ? 24 : 34),
                     _ResetEmailField(controller: _emailController),
                     const SizedBox(height: 18),
                     const _ResetInfoBox(),
-                    const SizedBox(height: 48),
+                    SizedBox(height: isShortScreen ? 28 : 48),
                     SizedBox(
-                      width: 244,
+                      width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _sendResetLink,
@@ -131,7 +141,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 42),
+                    SizedBox(height: isShortScreen ? 24 : 42),
                     TextButton(
                       onPressed: () {
                         Navigator.pushReplacementNamed(context, Routes.login);

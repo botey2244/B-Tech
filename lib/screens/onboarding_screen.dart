@@ -78,6 +78,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final bottomGap = constraints.maxHeight < 700
+                ? 12.0
+                : constraints.maxHeight * 0.035;
+
             return Column(
               children: [
                 Expanded(
@@ -100,8 +104,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   currentPage: _currentPage,
                   pageCount: _pages.length,
                   onPrimaryAction: _handlePrimaryAction,
+                  maxWidth: constraints.maxWidth,
                 ),
-                SizedBox(height: constraints.maxHeight * 0.035),
+                SizedBox(height: bottomGap),
               ],
             );
           },
@@ -146,25 +151,31 @@ class _OnboardingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isShortScreen = maxHeight < 700;
+    final topGap = isShortScreen ? 16.0 : maxHeight * 0.08;
+    final logoSize = isShortScreen ? 88.0 : 118.0;
+    final titleSize = isShortScreen ? 24.0 : 28.0;
+    final artScale = isShortScreen ? 0.78 : 1.0;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: maxHeight * 0.72),
+        constraints: BoxConstraints(minHeight: maxHeight * 0.64),
         child: Column(
           children: [
-            SizedBox(height: maxHeight * 0.08),
+            SizedBox(height: topGap),
             Image.asset(
               'assets/images/logo.png',
-              width: 118,
-              height: 118,
+              width: logoSize,
+              height: logoSize,
               fit: BoxFit.contain,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isShortScreen ? 14 : 24),
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 28,
+                style: TextStyle(
+                  fontSize: titleSize,
                   height: 1.18,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0,
@@ -181,9 +192,9 @@ class _OnboardingPage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: isShortScreen ? 10 : 14),
             SizedBox(
-              width: 250,
+              width: double.infinity,
               child: Text(
                 data.description,
                 textAlign: TextAlign.center,
@@ -195,8 +206,8 @@ class _OnboardingPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            _ProductArt(data: data),
+            SizedBox(height: isShortScreen ? 6 : 10),
+            _ProductArt(data: data, scale: artScale),
           ],
         ),
       ),
@@ -205,15 +216,16 @@ class _OnboardingPage extends StatelessWidget {
 }
 
 class _ProductArt extends StatelessWidget {
-  const _ProductArt({required this.data});
+  const _ProductArt({required this.data, required this.scale});
 
   final _OnboardingData data;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 282,
-      height: 232,
+      width: 282 * scale,
+      height: 232 * scale,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
@@ -221,8 +233,8 @@ class _ProductArt extends StatelessWidget {
           Positioned(
             bottom: 2,
             child: Container(
-              width: 214,
-              height: 214,
+              width: 214 * scale,
+              height: 214 * scale,
               decoration: BoxDecoration(
                 color: OnboardingScreen.softBlue,
                 shape: BoxShape.circle,
@@ -237,12 +249,12 @@ class _ProductArt extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: data.imageLeft,
-            right: data.imageRight,
-            bottom: data.imageBottom,
+            left: data.imageLeft * scale,
+            right: data.imageRight * scale,
+            bottom: data.imageBottom * scale,
             child: Image.asset(
               data.imagePath,
-              height: data.imageHeight,
+              height: data.imageHeight * scale,
               fit: BoxFit.contain,
             ),
           ),
@@ -258,19 +270,25 @@ class _OnboardingActions extends StatelessWidget {
     required this.currentPage,
     required this.pageCount,
     required this.onPrimaryAction,
+    required this.maxWidth,
   });
 
   final String buttonLabel;
   final int currentPage;
   final int pageCount;
   final VoidCallback onPrimaryAction;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding = maxWidth < 360 ? 48.0 : 70.0;
+    final buttonWidth =
+        (maxWidth - horizontalPadding).clamp(0.0, 245.0).toDouble();
+
     return Column(
       children: [
         SizedBox(
-          width: 245,
+          width: buttonWidth,
           height: 54,
           child: ElevatedButton(
             onPressed: onPrimaryAction,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "425680522376",
+    "project_id": "b-tech-e6556",
+    "storage_bucket": "b-tech-e6556.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425680522376:android:e60ad100709e29106b233d",
+        "android_client_info": {
+          "package_name": "Btech.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxOAU4fKpJ6CGZ26-jV_VQl4IbVdG-FFI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

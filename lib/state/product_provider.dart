@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
-import '../services/firestore_service.dart';
+import '../services/firebase_database_service.dart';
 
 class ProductProvider extends ChangeNotifier {
-  final FirestoreService _service = FirestoreService();
+  final FirebaseDatabaseService _service = FirebaseDatabaseService();
   List<Product> products = [];
   bool isLoading = false;
+  String? errorMessage;
 
   ProductProvider() {
     fetchProducts();
@@ -13,9 +14,16 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> fetchProducts() async {
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
-    products = await _service.fetchProducts();
-    isLoading = false;
-    notifyListeners();
+
+    try {
+      products = await _service.fetchProducts();
+    } catch (_) {
+      errorMessage = 'Could not load products from Firebase.';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 }

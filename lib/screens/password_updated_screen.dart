@@ -15,8 +15,11 @@ class PasswordUpdatedScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isShortScreen = constraints.maxHeight < 700;
+            final horizontalPadding = constraints.maxWidth < 360 ? 24.0 : 74.0;
+
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 74),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
@@ -39,7 +42,9 @@ class PasswordUpdatedScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: constraints.maxHeight * 0.08),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.03 : 0.08),
+                    ),
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -64,10 +69,10 @@ class PasswordUpdatedScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 54),
+                    SizedBox(height: isShortScreen ? 28 : 54),
                     Container(
                       width: double.infinity,
-                      height: 190,
+                      height: isShortScreen ? 170 : 190,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
@@ -106,7 +111,7 @@ class PasswordUpdatedScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 22),
                     SizedBox(
-                      width: 202,
+                      width: double.infinity,
                       height: 45,
                       child: ElevatedButton(
                         onPressed: () {

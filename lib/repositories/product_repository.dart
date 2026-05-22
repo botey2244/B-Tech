@@ -1,8 +1,8 @@
 import '../models/product.dart';
-import '../services/firestore_service.dart';
+import '../services/firebase_database_service.dart';
 
 class ProductRepository {
-  final FirestoreService _service = FirestoreService();
+  final FirebaseDatabaseService _service = FirebaseDatabaseService();
 
   Future<List<Product>> loadProducts() {
     return _service.fetchProducts();

@@ -72,8 +72,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final isShortScreen = constraints.maxHeight < 740;
+            final horizontalPadding = constraints.maxWidth < 360 ? 24.0 : 55.0;
+
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 55),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
@@ -96,7 +99,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: constraints.maxHeight * 0.075),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.025 : 0.075),
+                    ),
                     const Text(
                       'Reset Password',
                       textAlign: TextAlign.center,
@@ -109,9 +114,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     const SizedBox(height: 18),
                     const SizedBox(
-                      width: 250,
+                      width: double.infinity,
                       child: Text(
-                        'Please enter your new password\nand confirm it below.',
+                        'Please enter your new password and confirm it below.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black,
@@ -121,7 +126,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 34),
+                    SizedBox(height: isShortScreen ? 22 : 34),
                     _ResetPasswordField(
                       controller: _passwordController,
                       hintText: 'Enter new password',
@@ -131,7 +136,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: isShortScreen ? 12 : 18),
                     _ResetPasswordField(
                       controller: _confirmPasswordController,
                       hintText: 'Confirm new password',
@@ -143,7 +148,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: isShortScreen ? 12 : 18),
                     _RequirementRow(
                       label: 'At least 8 characters',
                       met: _hasMinLength,
@@ -163,9 +168,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       label: 'Include a special character',
                       met: _hasSpecialCharacter,
                     ),
-                    const SizedBox(height: 34),
+                    SizedBox(height: isShortScreen ? 22 : 34),
                     SizedBox(
-                      width: 250,
+                      width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
                         onPressed: _resetPassword,
@@ -187,7 +192,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: constraints.maxHeight * 0.09),
+                    SizedBox(
+                      height: constraints.maxHeight * (isShortScreen ? 0.03 : 0.09),
+                    ),
                     const _PasswordTipBox(),
                     const SizedBox(height: 28),
                   ],

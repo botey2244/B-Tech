@@ -16,26 +16,30 @@ class AuthProvider extends ChangeNotifier {
     try {
       user = await _authService.signIn(email, password);
     } catch (error) {
-      errorMessage = error.toString();
+      errorMessage = _authService.getReadableAuthError(error);
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-
-    isLoading = false;
-    notifyListeners();
   }
 
-  Future<void> register(String email, String password) async {
+  Future<void> register(String name, String email, String password) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      user = await _authService.signUp(email, password);
+      user = await _authService.signUp(
+        name: name,
+        email: email,
+        password: password,
+      );
     } catch (error) {
-      errorMessage = error.toString();
+      errorMessage = _authService.getReadableAuthError(error);
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-
-    isLoading = false;
-    notifyListeners();
   }
 
   Future<void> resetPassword(String email) async {
@@ -46,10 +50,10 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _authService.sendPasswordReset(email);
     } catch (error) {
-      errorMessage = error.toString();
+      errorMessage = _authService.getReadableAuthError(error);
+    } finally {
+      isLoading = false;
+      notifyListeners();
     }
-
-    isLoading = false;
-    notifyListeners();
   }
 }

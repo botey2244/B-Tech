@@ -98,9 +98,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   children: [
                     SizedBox(
-                      height: constraints.maxHeight * (isShortScreen ? 0.06 : 0.18),
+                      height:
+                          constraints.maxHeight * (isShortScreen ? 0.06 : 0.18),
                     ),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
@@ -108,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             'Create an Account',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.black,
                               fontSize: 29,
                               fontWeight: FontWeight.w800,
@@ -116,8 +117,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 5),
-                        const Icon(
+                        SizedBox(width: 5),
+                        Icon(
                           Icons.accessibility_new_rounded,
                           color: Colors.black,
                           size: 22,
@@ -207,8 +208,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryBlue,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: _primaryBlue.withOpacity(
-                            0.55,
+                          disabledBackgroundColor: _primaryBlue.withValues(
+                            alpha: 0.55,
                           ),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -235,7 +236,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     SizedBox(
-                      height: constraints.maxHeight * (isShortScreen ? 0.025 : 0.07),
+                      height: constraints.maxHeight *
+                          (isShortScreen ? 0.025 : 0.07),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

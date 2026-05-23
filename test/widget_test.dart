@@ -13,8 +13,9 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: Center(child: Text('0')),
-        floatingActionButton: FloatingActionButton(onPressed: () {}, child: const Icon(Icons.add)),
+        body: const Center(child: Text('0')),
+        floatingActionButton: FloatingActionButton(
+            onPressed: () {}, child: const Icon(Icons.add)),
       ),
     ));
 

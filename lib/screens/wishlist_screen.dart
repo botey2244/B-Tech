@@ -8,15 +8,25 @@ import '../state/cart_provider.dart';
 import '../state/wishlist_provider.dart';
 import 'product_detail_screen.dart';
 
-class WishlistScreen extends StatelessWidget {
+class WishlistScreen extends StatefulWidget {
   const WishlistScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF1607B8);
 
   @override
+  State<WishlistScreen> createState() => _WishlistScreenState();
+}
+
+class _WishlistScreenState extends State<WishlistScreen> {
+  final Set<String> selectedIds = {};
+
+  @override
   Widget build(BuildContext context) {
     final wishlist = context.watch<WishlistProvider>();
     final items = wishlist.items;
+
+    final bool allSelected =
+        items.isNotEmpty && selectedIds.length == items.length;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -41,7 +51,7 @@ class WishlistScreen extends StatelessWidget {
                     backgroundColor: Color(0xFFECE6FF),
                     child: Icon(
                       Icons.favorite_border_rounded,
-                      color: primaryBlue,
+                      color: WishlistScreen.primaryBlue,
                       size: 27,
                     ),
                   ),
@@ -60,8 +70,6 @@ class WishlistScreen extends StatelessWidget {
                         const SizedBox(height: 6),
                         const Text(
                           'Items you love, saved for later',
-                          maxLines: 2,
-                          overflow: TextOverflow.visible,
                           style: TextStyle(fontSize: 13, color: Colors.black54),
                         ),
                       ],
@@ -71,20 +79,59 @@ class WishlistScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Row(
-                children: const [
-                  Icon(Icons.check_box_outline_blank, size: 18),
-                  SizedBox(width: 8),
-                  Text(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (allSelected) {
+                          selectedIds.clear();
+                        } else {
+                          selectedIds
+                            ..clear()
+                            ..addAll(items.map((item) => item.product.id));
+                        }
+                      });
+                    },
+                    child: Icon(
+                      allSelected
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
+                      size: 20,
+                      color: allSelected
+                          ? WishlistScreen.primaryBlue
+                          : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
                     'Select All',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                   ),
-                  Spacer(),
-                  Text(
-                    'Delete',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.red,
-                      fontWeight: FontWeight.w700,
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: selectedIds.isEmpty
+                        ? null
+                        : () async {
+                            final wishlistProvider =
+                                context.read<WishlistProvider>();
+
+                            for (final id in selectedIds.toList()) {
+                              await wishlistProvider.removeProduct(id);
+                            }
+
+                            setState(() {
+                              selectedIds.clear();
+                            });
+                          },
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: selectedIds.isEmpty
+                            ? Colors.red.withValues(alpha: 0.35)
+                            : Colors.red,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -94,7 +141,19 @@ class WishlistScreen extends StatelessWidget {
                 const _EmptyWishlist()
               else
                 ...items.map(
-                  (item) => _WishlistItem(product: item.product),
+                  (item) => _WishlistItem(
+                    product: item.product,
+                    isSelected: selectedIds.contains(item.product.id),
+                    onSelect: () {
+                      setState(() {
+                        if (selectedIds.contains(item.product.id)) {
+                          selectedIds.remove(item.product.id);
+                        } else {
+                          selectedIds.add(item.product.id);
+                        }
+                      });
+                    },
+                  ),
                 ),
               const SizedBox(height: 28),
               const _InfoBox(),
@@ -108,9 +167,15 @@ class WishlistScreen extends StatelessWidget {
 }
 
 class _WishlistItem extends StatelessWidget {
-  const _WishlistItem({required this.product});
+  const _WishlistItem({
+    required this.product,
+    required this.isSelected,
+    required this.onSelect,
+  });
 
   final Product product;
+  final bool isSelected;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +204,15 @@ class _WishlistItem extends StatelessWidget {
         ),
         child: Row(
           children: [
+            GestureDetector(
+              onTap: onSelect,
+              child: Icon(
+                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 20,
+                color: isSelected ? WishlistScreen.primaryBlue : Colors.black54,
+              ),
+            ),
+            const SizedBox(width: 8),
             Image.asset(
               product.imageUrl,
               width: 66,
@@ -152,6 +226,8 @@ class _WishlistItem extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -162,7 +238,7 @@ class _WishlistItem extends StatelessWidget {
                   Text(
                     product.description,
                     maxLines: 3,
-                    overflow: TextOverflow.visible,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Colors.black87,
@@ -202,6 +278,7 @@ class _WishlistItem extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       context.read<CartProvider>().addProduct(product);
+
                       ScaffoldMessenger.of(context)
                         ..hideCurrentSnackBar()
                         ..showSnackBar(
@@ -296,13 +373,10 @@ class _InfoBox extends StatelessWidget {
           SizedBox(width: 22),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Don\'t see something you love?',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -312,8 +386,6 @@ class _InfoBox extends StatelessWidget {
                 SizedBox(height: 6),
                 Text(
                   'Keep exploring and add more items to your wishlist.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
@@ -347,6 +419,7 @@ class _BottomNavBar extends StatelessWidget {
           Routes.wishlist,
           Routes.profile,
         ];
+
         Navigator.pushReplacementNamed(context, routes[index]);
       },
       items: const [

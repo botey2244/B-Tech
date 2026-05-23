@@ -2,9 +2,10 @@ import 'product.dart';
 
 class CartItem {
   final Product product;
-  int quantity;
+  final int quantity;
 
-  CartItem({required this.product, this.quantity = 1});
-
-  double get total => product.price * quantity;
+  const CartItem({
+    required this.product,
+    required this.quantity,
+  });
 }

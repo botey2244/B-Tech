@@ -72,12 +72,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     SizedBox(
-                      height: constraints.maxHeight * (isShortScreen ? 0.08 : 0.18),
+                      height:
+                          constraints.maxHeight * (isShortScreen ? 0.08 : 0.18),
                     ),
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Flexible(
+                        Flexible(
                           child: Text(
                             'Welcome Back!',
                             maxLines: 1,
@@ -89,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        const Icon(
+                        SizedBox(width: 6),
+                        Icon(
                           Icons.accessibility_new_rounded,
                           color: Colors.black,
                           size: 24,
@@ -166,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           backgroundColor: _primaryBlue,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor:
-                              _primaryBlue.withOpacity(0.55),
+                              _primaryBlue.withValues(alpha: 0.55),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),

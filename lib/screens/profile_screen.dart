@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/routes.dart';
 import 'product_detail_screen.dart';
@@ -22,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
 
   Uint8List? _profileImageBytes;
+
   bool _hasUnsavedProfileImage = false;
   bool _isLoadingProfile = true;
   bool _isSavingProfile = false;
@@ -36,10 +39,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedImage = prefs.getString('profile_image');
+
+    if (savedImage == null) return;
+
+    if (!mounted) return;
+
+    setState(() {
+      _profileImageBytes = base64Decode(savedImage);
+    });
+  }
+
+  Future<void> _saveProfileImage() async {
+    if (_profileImageBytes == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final base64Image = base64Encode(_profileImageBytes!);
+
+    await prefs.setString('profile_image', base64Image);
+
+    if (!mounted) return;
+
+    setState(() {
+      _hasUnsavedProfileImage = false;
+    });
+
+    _showMessage('Profile photo saved.');
   }
 
   Future<void> _loadProfile() async {
     final user = _currentUser;
+
     if (user == null) {
       setState(() {
         _isLoadingProfile = false;
@@ -51,25 +86,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final snapshot = await _database.ref('users/${user.uid}/profile').get();
       final value = snapshot.value;
       final data = value is Map ? Map<String, dynamic>.from(value) : null;
+
       if (!mounted) return;
 
       setState(() {
         _name = (data?['name'] as String?)?.trim().isNotEmpty == true
             ? data!['name'] as String
             : user.displayName ?? _name;
+
         _email = (data?['email'] as String?)?.trim().isNotEmpty == true
             ? data!['email'] as String
             : user.email ?? _email;
+
         _location = (data?['location'] as String?)?.trim().isNotEmpty == true
             ? data!['location'] as String
             : _location;
+
         _isLoadingProfile = false;
       });
     } catch (_) {
       if (!mounted) return;
+
       setState(() {
         _isLoadingProfile = false;
       });
+
       _showMessage('Could not load profile from Firebase.');
     }
   }
@@ -91,18 +132,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
 
@@ -119,14 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _profileImageBytes = bytes;
       _hasUnsavedProfileImage = true;
     });
-  }
-
-  void _saveProfileImage() {
-    setState(() {
-      _hasUnsavedProfileImage = false;
-    });
-
-    _showMessage('Profile photo saved on this device.');
   }
 
   void _editProfile() {
@@ -185,7 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.black87,
-                            side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            side: const BorderSide(
+                              color: Color(0xFFE0E0E0),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -210,17 +233,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             });
 
                             Navigator.pop(context);
+
                             _saveProfileFields().then((_) {
                               if (!mounted) return;
+
                               setState(() {
                                 _isSavingProfile = false;
                               });
-                              _showMessage('Profile saved to Firebase.');
+
+                              _showMessage('Profile saved.');
                             }).catchError((_) {
                               if (!mounted) return;
+
                               setState(() {
                                 _isSavingProfile = false;
                               });
+
                               _showMessage('Could not save profile.');
                             });
                           },
@@ -253,6 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
     await _auth.signOut();
+
     if (!mounted) return;
 
     Navigator.pushNamedAndRemoveUntil(
@@ -260,6 +289,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Routes.register,
       (route) => false,
     );
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -438,9 +480,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider? profileImageProvider = profileImageBytes != null
-        ? MemoryImage(profileImageBytes!)
-        : null;
+    final ImageProvider? profileImageProvider =
+        profileImageBytes != null ? MemoryImage(profileImageBytes!) : null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -456,7 +497,7 @@ class _ProfileHeader extends StatelessWidget {
                 radius: 46,
                 backgroundColor: Colors.white,
                 child: CircleAvatar(
-                  radius: 38,
+                  radius: 43,
                   backgroundColor: const Color(0xFFE7D9FF),
                   backgroundImage: profileImageProvider,
                   child: profileImageBytes == null
@@ -766,6 +807,7 @@ class _BottomNavBar extends StatelessWidget {
           Routes.wishlist,
           Routes.profile,
         ];
+
         Navigator.pushReplacementNamed(context, routes[index]);
       },
       items: const [

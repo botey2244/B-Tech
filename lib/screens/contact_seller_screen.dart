@@ -78,7 +78,7 @@ class ContactSellerScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _PlatformCard(
                 iconText: 'f',
-                iconColor: Color(0xFF4267B2),
+                iconColor: const Color(0xFF4267B2),
                 title: 'Facebook',
                 subtitle: 'Message us on Facebook',
                 onTap: () => openPlatform(context, facebookUrl, 'Facebook'),
@@ -86,7 +86,7 @@ class ContactSellerScreen extends StatelessWidget {
               const SizedBox(height: 14),
               _PlatformCard(
                 icon: Icons.telegram_rounded,
-                iconColor: Color(0xFF2AABEE),
+                iconColor: const Color(0xFF2AABEE),
                 title: 'Telegram',
                 subtitle: 'Chat with us on Telegram',
                 onTap: () => openPlatform(context, telegramUrl, 'Telegram'),

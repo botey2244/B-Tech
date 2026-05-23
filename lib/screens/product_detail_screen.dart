@@ -196,8 +196,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 style: TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 14),
-              Row(
-                children: const [
+              const Row(
+                children: [
                   _ColorCircle(
                     color: ProductDetailScreen.primaryBlue,
                     selected: true,
@@ -215,9 +215,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: SizedBox(
                       height: 50,
                       child: OutlinedButton.icon(
-                        onPressed: _isAddingToCart
-                            ? null
-                            : () => _addToCart(product),
+                        onPressed:
+                            _isAddingToCart ? null : () => _addToCart(product),
                         icon: _isAddingToCart
                             ? const SizedBox(
                                 width: 18,

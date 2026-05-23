@@ -1,441 +1,524 @@
 import 'package:flutter/material.dart';
-import 'notification_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({super.key});
 
   static const Color primaryBlue = Color(0xFF1607B8);
-  static const Color darkPurple = Color(0xFF281936);
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  bool isSelectMode = false;
+  String searchText = '';
+
+  final List<NotificationItemModel> notifications = [
+    NotificationItemModel(
+      icon: Icons.receipt_long_outlined,
+      iconColor: const Color(0xFF7897D8),
+      bgColor: const Color(0xFFDCE8FF),
+      title: 'Receipt Generated',
+      message: 'Your receipt for 4 items is ready.',
+      time: '3m ago',
+    ),
+    NotificationItemModel(
+      icon: Icons.receipt_outlined,
+      iconColor: const Color(0xFF4CAF50),
+      bgColor: const Color(0xFFC9F2C3),
+      title: 'Receipt Ready to Use',
+      message: 'Use this receipt to give to the seller',
+      time: '4m ago',
+    ),
+    NotificationItemModel(
+      icon: Icons.chat_bubble_outline_rounded,
+      iconColor: Colors.orange,
+      bgColor: const Color(0xFFFFF0C8),
+      title: 'Contact Seller Reminder',
+      message: 'Please contact the seller on Facebook.',
+      time: '5m ago',
+    ),
+    NotificationItemModel(
+      icon: Icons.local_offer_rounded,
+      iconColor: const Color(0xFF5B4DD6),
+      bgColor: const Color(0xFFEAF2FF),
+      title: 'Special Offer',
+      message: 'Get 10% OFF on your next receipt',
+      time: '6m ago',
+    ),
+  ];
+
+  List<NotificationItemModel> get filteredNotifications {
+    if (searchText.trim().isEmpty) {
+      return notifications;
+    }
+
+    final query = searchText.toLowerCase();
+
+    return notifications.where((item) {
+      return item.title.toLowerCase().contains(query) ||
+          item.message.toLowerCase().contains(query) ||
+          item.time.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void toggleSelectMode() {
+    setState(() {
+      isSelectMode = !isSelectMode;
+
+      if (!isSelectMode) {
+        for (final item in notifications) {
+          item.isSelected = false;
+        }
+      }
+    });
+  }
+
+  void markSelectedAsRead() {
+    setState(() {
+      for (final item in notifications) {
+        if (item.isSelected) {
+          item.isUnread = false; // blue dot disappears
+          item.isSelected = false;
+        }
+      }
+
+      isSelectMode = false;
+    });
+  }
+
+  void deleteSelected() {
+    setState(() {
+      notifications.removeWhere((item) => item.isSelected);
+      isSelectMode = false;
+    });
+  }
+
+  void showMoreOptions(NotificationItemModel item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _BottomOption(
+                icon: Icons.mark_email_read_outlined,
+                title: 'Mark as read',
+                color: NotificationScreen.primaryBlue,
+                onTap: () {
+                  setState(() {
+                    item.isUnread = false; // blue dot disappears
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              _BottomOption(
+                icon: Icons.archive_outlined,
+                title: 'Archive',
+                color: Colors.black,
+                onTap: () {
+                  setState(() {
+                    notifications.remove(item);
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              _BottomOption(
+                icon: Icons.delete_outline,
+                title: 'Delete',
+                color: Colors.red,
+                onTap: () {
+                  setState(() {
+                    notifications.remove(item);
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void clearSearch() {
+    setState(() {
+      _searchController.clear();
+      searchText = '';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final visibleNotifications = filteredNotifications;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: const _BottomNavBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 14),
-              const _Header(),
-              const SizedBox(height: 22),
-              const _SearchBar(),
-              const SizedBox(height: 22),
-              const _HeroBanner(),
-              const SizedBox(height: 18),
-              const _SectionTitle(title: 'Categories'),
-              const SizedBox(height: 12),
-              const _CategoryList(),
-              const SizedBox(height: 20),
-              const _ProductHeader(),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 0.78,
-                children: const [
-                  _ProductCard(
-                    imagePath: 'assets/images/image.png',
-                    title: 'Apple MacBook M1',
-                    description: 'Powerful, sleek, and portable laptop.',
-                    price: '\$1,299.00',
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 26),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back, size: 26),
                   ),
-                  _ProductCard(
-                    imagePath: 'assets/images/image.png',
-                    title: 'Dell Inspiron All-in-One',
-                    description: 'All-in-one desktop with sleek design.',
-                    price: '\$1,099.00',
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Notifications',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
                   ),
-                  _ProductCard(
-                    imagePath: 'assets/images/image.png',
-                    title: 'Noise-Cancelling Headphones',
-                    description: 'Clear audio with plush memory.',
-                    price: '\$149.99',
-                  ),
-                  _ProductCard(
-                    imagePath: 'assets/images/image.png',
-                    title: 'Lenovo IdeaPad Slim 3',
-                    description: 'Reliable performance for everyday tasks.',
-                    price: '\$499.99',
+                  GestureDetector(
+                    onTap: toggleSelectMode,
+                    child: Text(
+                      isSelectMode ? 'Cancel' : 'Select',
+                      style: const TextStyle(
+                        color: NotificationScreen.primaryBlue,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.menu_rounded, size: 28),
-        const Spacer(),
-        Row(
-          children: [
-            Image.asset(
-              'assets/images/logo.png',
-              width: 24,
-              height: 24,
             ),
-            const SizedBox(width: 6),
-            const Text(
-              'Tech',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Colors.black,
+            const SizedBox(height: 26),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 26),
+              child: Container(
+                height: 54,
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F9),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      searchText = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    icon: const Icon(Icons.search, size: 24),
+                    hintText: 'Search notifications...',
+                    hintStyle: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black45,
+                    ),
+                    border: InputBorder.none,
+                    suffixIcon: searchText.isNotEmpty
+                        ? GestureDetector(
+                            onTap: clearSearch,
+                            child: const Icon(Icons.close, size: 20),
+                          )
+                        : null,
+                  ),
+                ),
               ),
+            ),
+            const SizedBox(height: 26),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 38),
+              child: Row(
+                children: [
+                  const Text(
+                    'Today',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: markSelectedAsRead,
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.mark_email_read_outlined,
+                          color: NotificationScreen.primaryBlue,
+                          size: 18,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          'Read',
+                          style: TextStyle(
+                            color: NotificationScreen.primaryBlue,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: deleteSelected,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                        SizedBox(width: 5),
+                        Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: visibleNotifications.isEmpty
+                  ? const _NoSearchResult()
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 38),
+                      itemCount: visibleNotifications.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == visibleNotifications.length) {
+                          return const _EmptyBottom();
+                        }
+
+                        final item = visibleNotifications[index];
+
+                        return _NotificationItem(
+                          item: item,
+                          isSelectMode: isSelectMode,
+                          onTap: () {
+                            if (isSelectMode) {
+                              setState(() {
+                                item.isSelected = !item.isSelected;
+                              });
+                            }
+                          },
+                          onMoreTap: () {
+                            showMoreOptions(item);
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-        const Spacer(),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationScreen(),
-              ),
-            );
-          },
-          child: const Icon(Icons.notifications, size: 26),
-        ),
-      ],
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.search, size: 20, color: Colors.black54),
-                SizedBox(width: 8),
-                Text(
-                  'research',
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Icon(Icons.filter_alt_outlined, size: 28, color: Colors.black54),
-      ],
-    );
-  }
-}
-
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 146,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: HomeScreen.darkPurple,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Power Up\nYour World',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 23,
-                    height: 1.05,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'best tech\nbest performance',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    height: 1.2,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Shop Now',
-                    style: TextStyle(
-                      color: HomeScreen.primaryBlue,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Image.asset(
-              'assets/images/image.png',
-              fit: BoxFit.contain,
-            ),
-          ),
-        ],
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
-}
-
-class _CategoryList extends StatelessWidget {
-  const _CategoryList();
-
-  @override
-  Widget build(BuildContext context) {
-    final categories = [
-      'Laptops',
-      'Desktops',
-      'Headphones',
-      'Monitors',
-      'More'
-    ];
-
-    return SizedBox(
-      height: 28,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Center(
-              child: Text(
-                categories[index],
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.black54,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ProductHeader extends StatelessWidget {
-  const _ProductHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: const [
-        Text(
-          'Popular Products',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Spacer(),
-        Text(
-          'See All',
-          style: TextStyle(
-            color: HomeScreen.primaryBlue,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.imagePath,
+class NotificationItemModel {
+  NotificationItemModel({
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
     required this.title,
-    required this.description,
-    required this.price,
+    required this.message,
+    required this.time,
+    this.isUnread = true,
+    this.isSelected = false,
   });
 
-  final String imagePath;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
   final String title;
-  final String description;
-  final String price;
+  final String message;
+  final String time;
+
+  bool isUnread;
+  bool isSelected;
+}
+
+class _NotificationItem extends StatelessWidget {
+  const _NotificationItem({
+    required this.item,
+    required this.isSelectMode,
+    required this.onTap,
+    required this.onMoreTap,
+  });
+
+  final NotificationItemModel item;
+  final bool isSelectMode;
+  final VoidCallback onTap;
+  final VoidCallback onMoreTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDEDED)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 116),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0xFFD6D6D6)),
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Center(
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                  ),
-                ),
+        ),
+        child: Row(
+          children: [
+            if (isSelectMode)
+              Icon(
+                item.isSelected
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                color: NotificationScreen.primaryBlue,
+                size: 22,
+              )
+            else
+              CircleAvatar(
+                radius: 6,
+                backgroundColor: item.isUnread
+                    ? NotificationScreen.primaryBlue
+                    : Colors.transparent,
               ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 8.5,
-                  color: Colors.black87,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Price: $price',
-                style: const TextStyle(
-                  color: HomeScreen.primaryBlue,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const Positioned(
-            right: 0,
-            top: 0,
-            child: Icon(
-              Icons.favorite_border_rounded,
-              size: 19,
-              color: Colors.black54,
+            const SizedBox(width: 18),
+            CircleAvatar(
+              radius: 29,
+              backgroundColor: item.bgColor,
+              child: Icon(item.icon, color: item.iconColor, size: 28),
             ),
-          ),
-        ],
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, height: 1.15),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.time,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: onMoreTap,
+                  child: const Icon(Icons.more_horiz, size: 24),
+                ),
+                const SizedBox(height: 24),
+                const Icon(Icons.chevron_right_rounded, size: 28),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar();
+class _BottomOption extends StatelessWidget {
+  const _BottomOption({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: 0,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: HomeScreen.primaryBlue,
-      unselectedItemColor: Colors.black,
-      selectedFontSize: 10,
-      unselectedFontSize: 10,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.grid_view_rounded),
-          label: 'Categories',
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _NoSearchResult extends StatelessWidget {
+  const _NoSearchResult();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'No notifications found',
+        style: TextStyle(
+          color: Colors.black45,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.shopping_cart_outlined),
-          label: 'Cart',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_border_rounded),
-          label: 'Wishlist',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: 'Profile',
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+class _EmptyBottom extends StatelessWidget {
+  const _EmptyBottom();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 34),
+      child: Column(
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 34, color: Colors.black54),
+          SizedBox(height: 16),
+          Text(
+            'You’re all caught up!',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'We’ll notify you when something new arrives.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.black45),
+          ),
+        ],
+      ),
     );
   }
 }

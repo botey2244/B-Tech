@@ -43,7 +43,8 @@ class PasswordUpdatedScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(
-                      height: constraints.maxHeight * (isShortScreen ? 0.03 : 0.08),
+                      height:
+                          constraints.maxHeight * (isShortScreen ? 0.03 : 0.08),
                     ),
                     const Align(
                       alignment: Alignment.centerLeft,
@@ -81,9 +82,9 @@ class PasswordUpdatedScreen extends StatelessWidget {
                           width: 1,
                         ),
                       ),
-                      child: Column(
+                      child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           _SuccessCheck(),
                           SizedBox(height: 18),
                           Text(

@@ -75,7 +75,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: Column(
                   children: [
                     SizedBox(
-                      height: constraints.maxHeight * (isShortScreen ? 0.1 : 0.22),
+                      height:
+                          constraints.maxHeight * (isShortScreen ? 0.1 : 0.22),
                     ),
                     const Text(
                       'Forgot Password?',
@@ -114,8 +115,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryBlue,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: _primaryBlue.withOpacity(
-                            0.55,
+                          disabledBackgroundColor: _primaryBlue.withValues(
+                            alpha: 0.55,
                           ),
                           elevation: 0,
                           shape: RoundedRectangleBorder(

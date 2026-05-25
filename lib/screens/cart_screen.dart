@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../app/routes.dart';
 import '../core/product_helpers.dart';
 import '../models/cart_item.dart';
+import '../services/order_service.dart';
 import '../state/cart_provider.dart';
 
 import 'contact_seller_screen.dart';
@@ -21,6 +22,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final Set<String> selectedIds = {};
+  bool isCreatingOrder = false;
 
   bool isSelected(String id) {
     return selectedIds.contains(id);
@@ -60,6 +62,57 @@ class _CartScreenState extends State<CartScreen> {
     setState(() {
       selectedIds.clear();
     });
+  }
+
+  Future<void> createReceipt(BuildContext context) async {
+    final cart = context.read<CartProvider>();
+    final items = cart.items;
+
+    if (items.isEmpty || isCreatingOrder) return;
+
+    setState(() {
+      isCreatingOrder = true;
+    });
+
+    const shipping = 2.0;
+    final subtotal = cart.totalPrice;
+    final total = subtotal + shipping;
+
+    final orderId = await OrderService().createOrder(
+      items: items,
+      subtotal: subtotal,
+      shipping: shipping,
+      total: total,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      isCreatingOrder = false;
+    });
+
+    if (orderId == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please login before creating receipt.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return;
+    }
+
+    await cart.clearCart();
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReceiptScreen(orderId: orderId),
+      ),
+    );
   }
 
   @override
@@ -195,18 +248,21 @@ class _CartScreenState extends State<CartScreen> {
                     child: SizedBox(
                       height: 52,
                       child: OutlinedButton.icon(
-                        onPressed: items.isEmpty
+                        onPressed: items.isEmpty || isCreatingOrder
                             ? null
-                            : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ReceiptScreen(),
-                                  ),
-                                );
-                              },
-                        icon: const Icon(Icons.receipt_long_outlined),
-                        label: const Text('Receipt'),
+                            : () => createReceipt(context),
+                        icon: isCreatingOrder
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.receipt_long_outlined),
+                        label: Text(
+                          isCreatingOrder ? 'Saving...' : 'Receipt',
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: CartScreen.primaryBlue,
                           side: const BorderSide(
@@ -281,15 +337,10 @@ class _CartItem extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(9),
       onTap: () {
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          Routes.productDetail,
-          arguments: ProductDetailData(
-            imagePath: product.imageUrl,
-            title: product.name,
-            description: product.description,
-            price: price,
-            rating: '4.6 (1,068 reviews)',
+          MaterialPageRoute(
+            builder: (_) => ProductDetailScreen(product: product),
           ),
         );
       },

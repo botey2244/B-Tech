@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -12,56 +14,17 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   final TextEditingController _searchController = TextEditingController();
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
+
   bool isSelectMode = false;
   String searchText = '';
+  final Set<String> selectedIds = {};
 
-  final List<NotificationItemModel> notifications = [
-    NotificationItemModel(
-      icon: Icons.receipt_long_outlined,
-      iconColor: const Color(0xFF7897D8),
-      bgColor: const Color(0xFFDCE8FF),
-      title: 'Receipt Generated',
-      message: 'Your receipt for 4 items is ready.',
-      time: '3m ago',
-    ),
-    NotificationItemModel(
-      icon: Icons.receipt_outlined,
-      iconColor: const Color(0xFF4CAF50),
-      bgColor: const Color(0xFFC9F2C3),
-      title: 'Receipt Ready to Use',
-      message: 'Use this receipt to give to the seller',
-      time: '4m ago',
-    ),
-    NotificationItemModel(
-      icon: Icons.chat_bubble_outline_rounded,
-      iconColor: Colors.orange,
-      bgColor: const Color(0xFFFFF0C8),
-      title: 'Contact Seller Reminder',
-      message: 'Please contact the seller on Facebook.',
-      time: '5m ago',
-    ),
-    NotificationItemModel(
-      icon: Icons.local_offer_rounded,
-      iconColor: const Color(0xFF5B4DD6),
-      bgColor: const Color(0xFFEAF2FF),
-      title: 'Special Offer',
-      message: 'Get 10% OFF on your next receipt',
-      time: '6m ago',
-    ),
-  ];
-
-  List<NotificationItemModel> get filteredNotifications {
-    if (searchText.trim().isEmpty) {
-      return notifications;
-    }
-
-    final query = searchText.toLowerCase();
-
-    return notifications.where((item) {
-      return item.title.toLowerCase().contains(query) ||
-          item.message.toLowerCase().contains(query) ||
-          item.time.toLowerCase().contains(query);
-    }).toList();
+  DatabaseReference? get _notificationRef {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    return _database.ref('users/${user.uid}/notifications');
   }
 
   @override
@@ -70,36 +33,63 @@ class _NotificationScreenState extends State<NotificationScreen> {
     super.dispose();
   }
 
+  String _timeAgo(dynamic timestamp) {
+    if (timestamp == null) return 'Just now';
+
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
   void toggleSelectMode() {
     setState(() {
       isSelectMode = !isSelectMode;
-
-      if (!isSelectMode) {
-        for (final item in notifications) {
-          item.isSelected = false;
-        }
-      }
+      if (!isSelectMode) selectedIds.clear();
     });
   }
 
-  void markSelectedAsRead() {
-    setState(() {
-      for (final item in notifications) {
-        if (item.isSelected) {
-          item.isUnread = false; // blue dot disappears
-          item.isSelected = false;
-        }
-      }
+  Future<void> markSelectedAsRead() async {
+    final ref = _notificationRef;
+    if (ref == null) return;
 
+    for (final id in selectedIds) {
+      await ref.child(id).update({'isUnread': false});
+    }
+
+    setState(() {
+      selectedIds.clear();
       isSelectMode = false;
     });
   }
 
-  void deleteSelected() {
+  Future<void> deleteSelected() async {
+    final ref = _notificationRef;
+    if (ref == null) return;
+
+    for (final id in selectedIds) {
+      await ref.child(id).remove();
+    }
+
     setState(() {
-      notifications.removeWhere((item) => item.isSelected);
+      selectedIds.clear();
       isSelectMode = false;
     });
+  }
+
+  Future<void> markOneAsRead(String id) async {
+    final ref = _notificationRef;
+    if (ref == null) return;
+    await ref.child(id).update({'isUnread': false});
+  }
+
+  Future<void> deleteOne(String id) async {
+    final ref = _notificationRef;
+    if (ref == null) return;
+    await ref.child(id).remove();
   }
 
   void showMoreOptions(NotificationItemModel item) {
@@ -119,33 +109,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 icon: Icons.mark_email_read_outlined,
                 title: 'Mark as read',
                 color: NotificationScreen.primaryBlue,
-                onTap: () {
-                  setState(() {
-                    item.isUnread = false; // blue dot disappears
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              _BottomOption(
-                icon: Icons.archive_outlined,
-                title: 'Archive',
-                color: Colors.black,
-                onTap: () {
-                  setState(() {
-                    notifications.remove(item);
-                  });
-                  Navigator.pop(context);
+                onTap: () async {
+                  await markOneAsRead(item.id);
+                  if (context.mounted) Navigator.pop(context);
                 },
               ),
               _BottomOption(
                 icon: Icons.delete_outline,
                 title: 'Delete',
                 color: Colors.red,
-                onTap: () {
-                  setState(() {
-                    notifications.remove(item);
-                  });
-                  Navigator.pop(context);
+                onTap: () async {
+                  await deleteOne(item.id);
+                  if (context.mounted) Navigator.pop(context);
                 },
               ),
             ],
@@ -162,9 +137,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
+  List<NotificationItemModel> _filterNotifications(
+    List<NotificationItemModel> list,
+  ) {
+    if (searchText.trim().isEmpty) return list;
+
+    final query = searchText.toLowerCase();
+
+    return list.where((item) {
+      return item.title.toLowerCase().contains(query) ||
+          item.message.toLowerCase().contains(query) ||
+          item.time.toLowerCase().contains(query);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final visibleNotifications = filteredNotifications;
+    final ref = _notificationRef;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -225,10 +214,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   decoration: InputDecoration(
                     icon: const Icon(Icons.search, size: 24),
                     hintText: 'Search notifications...',
-                    hintStyle: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black45,
-                    ),
                     border: InputBorder.none,
                     suffixIcon: searchText.isNotEmpty
                         ? GestureDetector(
@@ -251,7 +236,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: markSelectedAsRead,
+                    onTap: selectedIds.isEmpty ? null : markSelectedAsRead,
                     child: const Row(
                       children: [
                         Icon(
@@ -273,7 +258,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: deleteSelected,
+                    onTap: selectedIds.isEmpty ? null : deleteSelected,
                     child: const Row(
                       children: [
                         Icon(Icons.delete_outline, color: Colors.red, size: 18),
@@ -294,30 +279,78 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: visibleNotifications.isEmpty
-                  ? const _NoSearchResult()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 38),
-                      itemCount: visibleNotifications.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == visibleNotifications.length) {
-                          return const _EmptyBottom();
+              child: ref == null
+                  ? const Center(child: Text('Please login first'))
+                  : StreamBuilder<DatabaseEvent>(
+                      stream: ref.orderByChild('createdAt').onValue,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
-                        final item = visibleNotifications[index];
+                        final value = snapshot.data?.snapshot.value;
 
-                        return _NotificationItem(
-                          item: item,
-                          isSelectMode: isSelectMode,
-                          onTap: () {
-                            if (isSelectMode) {
-                              setState(() {
-                                item.isSelected = !item.isSelected;
-                              });
+                        final allNotifications = <NotificationItemModel>[];
+
+                        if (value is Map) {
+                          value.forEach((key, data) {
+                            final map = Map<String, dynamic>.from(data as Map);
+
+                            allNotifications.add(
+                              NotificationItemModel(
+                                id: key.toString(),
+                                title: map['title'] ?? '',
+                                message: map['message'] ?? '',
+                                time: _timeAgo(map['createdAt']),
+                                isUnread: map['isUnread'] ?? true,
+                              ),
+                            );
+                          });
+                        }
+
+                        allNotifications.sort((a, b) => b.id.compareTo(a.id));
+
+                        final visibleNotifications =
+                            _filterNotifications(allNotifications);
+
+                        if (visibleNotifications.isEmpty) {
+                          return const _NoSearchResult();
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 38),
+                          itemCount: visibleNotifications.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == visibleNotifications.length) {
+                              return const _EmptyBottom();
                             }
-                          },
-                          onMoreTap: () {
-                            showMoreOptions(item);
+
+                            final item = visibleNotifications[index];
+
+                            return _NotificationItem(
+                              item: item,
+                              isSelectMode: isSelectMode,
+                              isSelected: selectedIds.contains(item.id),
+                              onTap: () {
+                                if (isSelectMode) {
+                                  setState(() {
+                                    if (selectedIds.contains(item.id)) {
+                                      selectedIds.remove(item.id);
+                                    } else {
+                                      selectedIds.add(item.id);
+                                    }
+                                  });
+                                } else {
+                                  markOneAsRead(item.id);
+                                }
+                              },
+                              onMoreTap: () {
+                                showMoreOptions(item);
+                              },
+                            );
                           },
                         );
                       },
@@ -332,37 +365,32 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
 class NotificationItemModel {
   NotificationItemModel({
-    required this.icon,
-    required this.iconColor,
-    required this.bgColor,
+    required this.id,
     required this.title,
     required this.message,
     required this.time,
-    this.isUnread = true,
-    this.isSelected = false,
+    required this.isUnread,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final Color bgColor;
+  final String id;
   final String title;
   final String message;
   final String time;
-
-  bool isUnread;
-  bool isSelected;
+  final bool isUnread;
 }
 
 class _NotificationItem extends StatelessWidget {
   const _NotificationItem({
     required this.item,
     required this.isSelectMode,
+    required this.isSelected,
     required this.onTap,
     required this.onMoreTap,
   });
 
   final NotificationItemModel item;
   final bool isSelectMode;
+  final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onMoreTap;
 
@@ -382,9 +410,7 @@ class _NotificationItem extends StatelessWidget {
           children: [
             if (isSelectMode)
               Icon(
-                item.isSelected
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: NotificationScreen.primaryBlue,
                 size: 22,
               )
@@ -396,10 +422,14 @@ class _NotificationItem extends StatelessWidget {
                     : Colors.transparent,
               ),
             const SizedBox(width: 18),
-            CircleAvatar(
+            const CircleAvatar(
               radius: 29,
-              backgroundColor: item.bgColor,
-              child: Icon(item.icon, color: item.iconColor, size: 28),
+              backgroundColor: Color(0xFFEDE7FF),
+              child: Icon(
+                Icons.notifications_active_outlined,
+                color: NotificationScreen.primaryBlue,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 18),
             Expanded(
@@ -431,16 +461,9 @@ class _NotificationItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: onMoreTap,
-                  child: const Icon(Icons.more_horiz, size: 24),
-                ),
-                const SizedBox(height: 24),
-                const Icon(Icons.chevron_right_rounded, size: 28),
-              ],
+            GestureDetector(
+              onTap: onMoreTap,
+              child: const Icon(Icons.more_horiz, size: 24),
             ),
           ],
         ),
@@ -468,10 +491,7 @@ class _BottomOption extends StatelessWidget {
       leading: Icon(icon, color: color),
       title: Text(
         title,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
       onTap: onTap,
     );

@@ -14,6 +14,7 @@ import '../screens/register_screen.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/receipt_screen.dart';
 import '../screens/wishlist_screen.dart';
+import '../models/product.dart';
 
 class Routes {
   static const String onboarding = '/onboarding';
@@ -44,7 +45,7 @@ class Routes {
       case resetPassword:
         return MaterialPageRoute(builder: (_) => const ResetPasswordScreen());
       case receipt:
-        return MaterialPageRoute(builder: (_) => const ReceiptScreen());
+        return MaterialPageRoute(builder: (_) => ReceiptScreen());
       case passwordUpdated:
         return MaterialPageRoute(
           builder: (_) => const PasswordUpdatedScreen(),
@@ -54,7 +55,13 @@ class Routes {
       case categories:
         return MaterialPageRoute(builder: (_) => const CategoryScreen());
       case productDetail:
-        return MaterialPageRoute(builder: (_) => const ProductDetailScreen());
+        final product = settings.arguments as Product?;
+        if (product == null) {
+          return MaterialPageRoute(builder: (_) => const HomeScreen());
+        }
+        return MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(product: product),
+        );
       case cart:
         return MaterialPageRoute(builder: (_) => const CartScreen());
       case profile:

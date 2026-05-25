@@ -5,10 +5,14 @@ Product productFromDisplayData({
   required String description,
   required String price,
   required String imagePath,
+  String brand = 'Generic',
+  String category = 'Other',
 }) {
   return Product(
     id: title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-'),
     name: title,
+    brand: brand,
+    category: category,
     description: description,
     price: priceToDouble(price),
     imageUrl: imagePath,
@@ -20,6 +24,8 @@ double priceToDouble(String price) {
 }
 
 String formatPrice(double price) {
-  final hasCents = price % 1 != 0;
-  return '\$${price.toStringAsFixed(hasCents ? 2 : 0)}';
+  if (price == price.roundToDouble()) {
+    return '\$${price.toStringAsFixed(0)}';
+  }
+  return '\$${price.toStringAsFixed(2)}';
 }

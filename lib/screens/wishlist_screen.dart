@@ -182,15 +182,10 @@ class _WishlistItem extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(9),
       onTap: () {
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          Routes.productDetail,
-          arguments: ProductDetailData(
-            imagePath: product.imageUrl,
-            title: product.name,
-            description: product.description,
-            price: formatPrice(product.price),
-            rating: '4.6 (1,068 reviews)',
+          MaterialPageRoute(
+            builder: (_) => ProductDetailScreen(product: product),
           ),
         );
       },

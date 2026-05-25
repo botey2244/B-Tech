@@ -8,7 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/routes.dart';
-import 'product_detail_screen.dart';
+import 'order_history_screen.dart';
+import 'receipt_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,8 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoadingProfile = true;
   bool _isSavingProfile = false;
 
-  String _name = 'Jing Jing';
-  String _email = 'limpotkolbotey@gmail.com';
+  String _name = 'Botey';
+  String _email = 'lim.potklbotey25@kit.edu.kh';
   String _location = 'Phnom Penh, Koh Pich';
 
   User? get _currentUser => _auth.currentUser;
@@ -39,37 +40,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
-    _loadProfileImage();
-  }
-
-  Future<void> _loadProfileImage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedImage = prefs.getString('profile_image');
-
-    if (savedImage == null) return;
-
-    if (!mounted) return;
-
-    setState(() {
-      _profileImageBytes = base64Decode(savedImage);
-    });
-  }
-
-  Future<void> _saveProfileImage() async {
-    if (_profileImageBytes == null) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final base64Image = base64Encode(_profileImageBytes!);
-
-    await prefs.setString('profile_image', base64Image);
-
-    if (!mounted) return;
-
-    setState(() {
-      _hasUnsavedProfileImage = false;
-    });
-
-    _showMessage('Profile photo saved.');
   }
 
   Future<void> _loadProfile() async {
@@ -84,8 +54,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       final snapshot = await _database.ref('users/${user.uid}/profile').get();
+
       final value = snapshot.value;
       final data = value is Map ? Map<String, dynamic>.from(value) : null;
+
+      final savedImage = data?['profileImageBase64'] as String?;
+
+      if (savedImage != null && savedImage.isNotEmpty) {
+        _profileImageBytes = base64Decode(savedImage);
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        final localImage = prefs.getString('profile_image');
+
+        if (localImage != null && localImage.isNotEmpty) {
+          _profileImageBytes = base64Decode(localImage);
+        }
+      }
 
       if (!mounted) return;
 
@@ -113,6 +97,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       _showMessage('Could not load profile from Firebase.');
     }
+  }
+
+  Future<void> _saveProfileImage() async {
+    final user = _currentUser;
+    if (user == null || _profileImageBytes == null) return;
+
+    final base64Image = base64Encode(_profileImageBytes!);
+
+    await _database.ref('users/${user.uid}/profile').update({
+      'profileImageBase64': base64Image,
+      'updatedAt': ServerValue.timestamp,
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_image', base64Image);
+
+    if (!mounted) return;
+
+    setState(() {
+      _hasUnsavedProfileImage = false;
+    });
+
+    _showMessage('Profile photo saved.');
   }
 
   Future<void> _saveProfileFields() async {
@@ -204,20 +211,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black87,
-                            side: const BorderSide(
-                              color: Color(0xFFE0E0E0),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            textStyle: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
                           child: const Text('Cancel'),
                         ),
                       ),
@@ -255,15 +248,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: ProfileScreen.primaryBlue,
                             foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            textStyle: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
                           ),
                           child: const Text('Save'),
                         ),
@@ -304,8 +288,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
   }
 
+  DatabaseReference? _ordersRef() {
+    final user = _currentUser;
+    if (user == null) return null;
+    return _database.ref('users/${user.uid}/orders');
+  }
+
+  DatabaseReference? _wishlistRef() {
+    final user = _currentUser;
+    if (user == null) return null;
+    return _database.ref('users/${user.uid}/wishlist');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ordersRef = _ordersRef();
+    final wishlistRef = _wishlistRef();
+
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const _BottomNavBar(),
@@ -371,63 +370,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ProfileScreen.primaryBlue,
                       foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                      ),
                     ),
                   ),
                 ),
               ],
               const SizedBox(height: 28),
-              const Row(
+              Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
+                    child: _FirebaseCountCard(
+                      ref: ordersRef,
                       icon: Icons.shopping_bag_outlined,
-                      number: '24',
                       label: 'order',
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
+                    child: _FirebaseCountCard(
+                      ref: wishlistRef,
                       icon: Icons.favorite_border_rounded,
-                      number: '24',
                       label: 'wishlist',
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
-              const Row(
+              Row(
                 children: [
-                  Text(
+                  const Text(
                     'Recent Orders',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Spacer(),
-                  Text(
-                    'View All',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: ProfileScreen.primaryBlue,
-                      fontWeight: FontWeight.w800,
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OrderHistoryScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'View All',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: ProfileScreen.primaryBlue,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              const _OrderCard(),
-              const _OrderCard(),
-              const _OrderCard(),
+              _RecentOrdersList(
+                ordersRef: ordersRef,
+              ),
               const SizedBox(height: 22),
               Align(
                 alignment: Alignment.centerLeft,
@@ -442,16 +443,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE5E5E5)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -459,6 +450,228 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RecentOrdersList extends StatelessWidget {
+  const _RecentOrdersList({
+    required this.ordersRef,
+  });
+
+  final DatabaseReference? ordersRef;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ordersRef == null) {
+      return const Text('Please login to see orders.');
+    }
+
+    return StreamBuilder<DatabaseEvent>(
+      stream: ordersRef!.orderByChild('createdAt').limitToLast(5).onValue,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Text('Something went wrong loading orders.');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(30),
+            child: CircularProgressIndicator(
+              color: ProfileScreen.primaryBlue,
+            ),
+          );
+        }
+
+        final value = snapshot.data?.snapshot.value;
+
+        if (value == null || value is! Map) {
+          return const Text('No recent orders yet.');
+        }
+
+        final orders = <Map<String, dynamic>>[];
+
+        value.forEach((key, orderValue) {
+          if (orderValue is Map) {
+            final data = Map<String, dynamic>.from(orderValue);
+            data['id'] = key.toString();
+            orders.add(data);
+          }
+        });
+
+        orders.sort((a, b) {
+          final aTime = (a['createdAt'] as num?)?.toInt() ?? 0;
+          final bTime = (b['createdAt'] as num?)?.toInt() ?? 0;
+          return bTime.compareTo(aTime);
+        });
+
+        return Column(
+          children: orders.map((order) {
+            return _OrderCard(order: order);
+          }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.order,
+  });
+
+  final Map<String, dynamic> order;
+
+  @override
+  Widget build(BuildContext context) {
+    final orderId = order['id']?.toString() ?? '';
+    final total = (order['total'] as num?)?.toDouble() ?? 0.0;
+    final createdAt = order['createdAt'];
+
+    final items = _parseItems(order['items']);
+
+    final firstItem = items.isNotEmpty ? items.first : <String, dynamic>{};
+
+    final imageUrl =
+        firstItem['imageUrl']?.toString() ?? 'assets/images/image.png';
+    final name = firstItem['name']?.toString() ?? 'Order';
+
+    final quantity = items.fold<int>(0, (sum, item) {
+      final q = item['quantity'];
+      if (q is num) return sum + q.toInt();
+      return sum;
+    });
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReceiptScreen(orderId: orderId),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Image.asset(
+              imageUrl,
+              width: 72,
+              height: 52,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) {
+                return Container(
+                  width: 72,
+                  height: 52,
+                  color: const Color(0xFFF2F2F2),
+                  child: const Icon(Icons.shopping_bag_outlined),
+                );
+              },
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '$quantity item${quantity > 1 ? 's' : ''} • ${_formatDate(createdAt)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Total: \$${total.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static List<Map<String, dynamic>> _parseItems(dynamic value) {
+    if (value == null) return [];
+
+    if (value is List) {
+      return value
+          .where((item) => item is Map)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+    }
+
+    if (value is Map) {
+      return value.values
+          .where((item) => item is Map)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+    }
+
+    return [];
+  }
+
+  static String _formatDate(dynamic timestamp) {
+    if (timestamp == null || timestamp is! num) return 'No date';
+
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
+    return '${date.month}/${date.day}/${date.year}';
+  }
+}
+
+class _FirebaseCountCard extends StatelessWidget {
+  const _FirebaseCountCard({
+    required this.ref,
+    required this.icon,
+    required this.label,
+  });
+
+  final DatabaseReference? ref;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DatabaseEvent>(
+      stream: ref?.onValue,
+      builder: (context, snapshot) {
+        int count = 0;
+
+        final value = snapshot.data?.snapshot.value;
+        if (value is Map) {
+          count = value.length;
+        }
+
+        return _StatCard(
+          icon: icon,
+          number: count.toString(),
+          label: label,
+        );
+      },
     );
   }
 }
@@ -552,7 +765,10 @@ class _ProfileHeader extends StatelessWidget {
                   email.isEmpty ? 'No Email' : email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -590,7 +806,10 @@ class _ProfileHeader extends StatelessWidget {
                         'Joined May, 2026',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -622,26 +841,16 @@ class _ProfileTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: ProfileScreen.primaryBlue, size: 21),
+        prefixIcon: Icon(
+          icon,
+          color: ProfileScreen.primaryBlue,
+        ),
         filled: true,
         fillColor: const Color(0xFFF7F5FF),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 14,
-        ),
-        enabledBorder: OutlineInputBorder(
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE3DDF7)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: ProfileScreen.primaryBlue,
-            width: 1.4,
-          ),
         ),
       ),
     );
@@ -665,7 +874,9 @@ class _StatCard extends StatelessWidget {
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        border: Border.all(
+          color: const Color(0xFFE5E5E5),
+        ),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -705,86 +916,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _OrderCard extends StatelessWidget {
-  const _OrderCard();
-
-  static const String _imagePath = 'assets/images/image.png';
-  static const String _title = 'Macbook M1';
-  static const String _description = '16GB RAM . 512GB SSD';
-  static const String _price = '\$1,099';
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          Routes.productDetail,
-          arguments: const ProductDetailData(
-            imagePath: _imagePath,
-            title: _title,
-            description: _description,
-            price: _price,
-            rating: '4.6 (1,068 reviews)',
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E5E5)),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Image.asset(
-              _imagePath,
-              width: 76,
-              height: 56,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    _description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: Colors.black87),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Price: $_price',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, size: 25),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
@@ -811,7 +942,10 @@ class _BottomNavBar extends StatelessWidget {
         Navigator.pushReplacementNamed(context, routes[index]);
       },
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
         BottomNavigationBarItem(
           icon: Icon(Icons.grid_view_rounded),
           label: 'Categories',

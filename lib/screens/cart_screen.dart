@@ -92,6 +92,7 @@ class _CartScreenState extends State<CartScreen> {
     });
 
     if (orderId == null) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -106,6 +107,7 @@ class _CartScreenState extends State<CartScreen> {
     await cart.clearCart();
 
     if (!mounted) return;
+    if (!context.mounted) return;
 
     Navigator.push(
       context,

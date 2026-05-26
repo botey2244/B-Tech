@@ -620,15 +620,15 @@ class _OrderCard extends StatelessWidget {
 
     if (value is List) {
       return value
-          .where((item) => item is Map)
-          .map((item) => Map<String, dynamic>.from(item as Map))
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
           .toList();
     }
 
     if (value is Map) {
       return value.values
-          .where((item) => item is Map)
-          .map((item) => Map<String, dynamic>.from(item as Map))
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
           .toList();
     }
 

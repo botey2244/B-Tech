@@ -6,9 +6,10 @@ class ContactSellerScreen extends StatelessWidget {
 
   static const Color primaryBlue = Color(0xFF1607B8);
   static const Color softPurple = Color(0xFFF4F0FF);
+
   static final Uri facebookUrl =
       Uri.parse('https://www.facebook.com/share/1LUzQLDTsu/?mibextid=wwXIfr');
-  static final Uri telegramUrl = Uri.parse('https://t.me/boreycomputer');
+  static final Uri telegramUrl = Uri.parse('https://t.me/botey44');
   static final Uri tiktokUrl =
       Uri.parse('https://www.tiktok.com/@boreycomputer');
 
@@ -18,6 +19,7 @@ class ContactSellerScreen extends StatelessWidget {
     String platform,
   ) async {
     final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+
     if (opened || !context.mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -93,8 +95,7 @@ class ContactSellerScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _PlatformCard(
-                iconText: '♪',
-                iconColor: Colors.black,
+                iconImage: 'assets/images/tiktok.png',
                 title: 'TikTok',
                 subtitle: 'Message us on TikTok',
                 onTap: () => openPlatform(context, tiktokUrl, 'TikTok'),
@@ -181,17 +182,19 @@ class _InfoBox extends StatelessWidget {
 
 class _PlatformCard extends StatelessWidget {
   const _PlatformCard({
-    required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.onTap,
     this.icon,
     this.iconText,
+    this.iconColor,
+    this.iconImage,
   });
 
   final IconData? icon;
   final String? iconText;
-  final Color iconColor;
+  final Color? iconColor;
+  final String? iconImage;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -216,17 +219,7 @@ class _PlatformCard extends StatelessWidget {
               SizedBox(
                 width: 36,
                 child: Center(
-                  child: icon != null
-                      ? Icon(icon, size: 31, color: iconColor)
-                      : Text(
-                          iconText ?? '',
-                          style: TextStyle(
-                            color: iconColor,
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                          ),
-                        ),
+                  child: _buildIcon(),
                 ),
               ),
               const SizedBox(width: 18),
@@ -257,6 +250,42 @@ class _PlatformCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildIcon() {
+    if (iconImage != null && iconImage!.isNotEmpty) {
+      return Image.asset(
+        iconImage!,
+        width: 28,
+        height: 28,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          return const Icon(
+            Icons.music_note_rounded,
+            color: Colors.black,
+            size: 28,
+          );
+        },
+      );
+    }
+
+    if (icon != null) {
+      return Icon(
+        icon,
+        size: 31,
+        color: iconColor ?? Colors.black,
+      );
+    }
+
+    return Text(
+      iconText ?? '',
+      style: TextStyle(
+        color: iconColor ?? Colors.black,
+        fontSize: 34,
+        fontWeight: FontWeight.w900,
+        height: 1,
       ),
     );
   }

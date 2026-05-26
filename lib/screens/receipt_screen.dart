@@ -1,10 +1,10 @@
-import 'package:file_saver/file_saver.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
 
 import '../core/product_helpers.dart';
+import '../services/receipt_saver_service.dart';
 
 class ReceiptScreen extends StatelessWidget {
   ReceiptScreen({
@@ -35,78 +35,48 @@ class ReceiptScreen extends StatelessWidget {
     required double shipping,
     required double total,
   }) async {
-    try {
-      final imageBytes = await screenshotController.captureFromWidget(
-        MediaQuery(
-          data: const MediaQueryData(
-            size: Size(390, 1000),
-            devicePixelRatio: 3,
-            textScaler: TextScaler.linear(1.0),
-          ),
-          child: Material(
-            color: Colors.white,
-            child: SizedBox(
-              width: 390,
-              height: 1600,
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Container(
+    // Show a loading indicator while saving.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
                   color: Colors.white,
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ReceiptHeader(order: order),
-                      const SizedBox(height: 22),
-                      _OrderInfoBox(orderId: orderId),
-                      const SizedBox(height: 22),
-                      _ReceiptItems(items: items),
-                      const SizedBox(height: 22),
-                      _TotalBox(
-                        subtotal: subtotal,
-                        shipping: shipping,
-                        total: total,
-                      ),
-                    ],
-                  ),
                 ),
               ),
-            ),
+              SizedBox(width: 14),
+              Text('Saving receipt to Photos…'),
+            ],
           ),
+          duration: Duration(seconds: 10),
+          behavior: SnackBarBehavior.floating,
         ),
-        pixelRatio: 3,
-        targetSize: const Size(390, 1000),
       );
 
-      await FileSaver.instance.saveFile(
-        name: 'receipt_${DateTime.now().millisecondsSinceEpoch}',
-        bytes: imageBytes,
-        ext: 'png',
-        mimeType: MimeType.png,
+    final success = await ReceiptSaverService.captureAndSave(
+      controller: screenshotController,
+    );
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? '✅ Receipt saved to your Photos!'
+                : '❌ Could not save receipt. Please try again.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Full receipt saved successfully.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    } catch (_) {
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Could not save receipt.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    }
   }
 
   @override
@@ -180,20 +150,26 @@ class ReceiptScreen extends StatelessWidget {
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(24, 24, 24, 34),
-                          child: Column(
-                            children: [
-                              _ReceiptHeader(order: order),
-                              const SizedBox(height: 22),
-                              _OrderInfoBox(orderId: orderId),
-                              const SizedBox(height: 22),
-                              _ReceiptItems(items: items),
-                              const SizedBox(height: 22),
-                              _TotalBox(
-                                subtotal: subtotal,
-                                shipping: shipping,
-                                total: total,
+                          child: Screenshot(
+                            controller: screenshotController,
+                            child: Container(
+                              color: Colors.white,
+                              child: Column(
+                                children: [
+                                  _ReceiptHeader(order: order),
+                                  const SizedBox(height: 22),
+                                  _OrderInfoBox(orderId: orderId),
+                                  const SizedBox(height: 22),
+                                  _ReceiptItems(items: items),
+                                  const SizedBox(height: 22),
+                                  _TotalBox(
+                                    subtotal: subtotal,
+                                    shipping: shipping,
+                                    total: total,
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -210,15 +186,15 @@ class ReceiptScreen extends StatelessWidget {
 
     if (value is List) {
       return value
-          .where((item) => item is Map)
-          .map((item) => Map<String, dynamic>.from(item as Map))
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
           .toList();
     }
 
     if (value is Map) {
       return value.values
-          .where((item) => item is Map)
-          .map((item) => Map<String, dynamic>.from(item as Map))
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
           .toList();
     }
 

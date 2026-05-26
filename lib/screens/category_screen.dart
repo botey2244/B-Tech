@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,8 +15,6 @@ import '../state/wishlist_provider.dart';
 
 import 'notification_screen.dart';
 import 'product_detail_screen.dart';
-
-import 'package:firebase_database/firebase_database.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -66,20 +66,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.dispose();
   }
 
-  bool matchCategory(Product product) {
+  bool _matchCategory(Product product) {
     if (selectedCategory == 'All') return true;
     return product.category.toLowerCase() == selectedCategory.toLowerCase();
   }
 
-  bool matchSearch(Product product) {
-    if (searchText.trim().isEmpty) return true;
+  bool _matchSearch(Product product) {
+    final search = searchText.trim().toLowerCase();
 
-    final query = searchText.toLowerCase();
-    final text =
-        '${product.name} ${product.brand} ${product.category} ${product.description}'
-            .toLowerCase();
+    if (search.isEmpty) return true;
 
-    return text.contains(query);
+    return product.name.toLowerCase().contains(search) ||
+        product.description.toLowerCase().contains(search) ||
+        product.brand.toLowerCase().contains(search) ||
+        product.category.toLowerCase().contains(search);
   }
 
   @override
@@ -87,31 +87,28 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final productProvider = context.watch<ProductProvider>();
 
     final filteredProducts = productProvider.products.where((product) {
-      return matchCategory(product) && matchSearch(product);
+      return _matchCategory(product) && _matchSearch(product);
     }).toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: const _CategoryDrawer(),
+      drawer: const SizedBox(
+        width: 260,
+        child: _CategoryDrawer(),
+      ),
       bottomNavigationBar: const _BottomNavBar(),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 14),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 26),
-              child: _Header(),
-            ),
-            const SizedBox(height: 22),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: _SearchBar(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 110),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 14),
+              const _Header(),
+              const SizedBox(height: 22),
+              _SearchBar(
                 controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchText = value;
-                  });
-                },
+                onChanged: (value) => setState(() => searchText = value),
                 onClear: () {
                   setState(() {
                     searchText = '';
@@ -119,11 +116,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   });
                 },
               ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: _CategoryChips(
+              const SizedBox(height: 28),
+              const Text(
+                'Categories',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 14),
+              _CategoryList(
                 categories: categories,
                 selectedCategory: selectedCategory,
                 onTap: (category) {
@@ -132,16 +131,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   });
                 },
               ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: Row(
+              const SizedBox(height: 28),
+              Row(
                 children: [
                   Text(
-                    selectedCategory,
+                    selectedCategory == 'All'
+                        ? 'All Products'
+                        : selectedCategory,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -149,51 +147,51 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   Text(
                     '${filteredProducts.length} items',
                     style: const TextStyle(
-                      fontSize: 13,
                       color: CategoryScreen.primaryBlue,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: productProvider.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: CategoryScreen.primaryBlue,
+              const SizedBox(height: 18),
+              if (productProvider.isLoading)
+                const Center(
+                  child: CircularProgressIndicator(
+                    color: CategoryScreen.primaryBlue,
+                  ),
+                )
+              else if (filteredProducts.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Text(
+                      'No products found',
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
-                    )
-                  : filteredProducts.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No products found',
-                            style: TextStyle(
-                              color: Colors.black45,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(26, 0, 26, 18),
-                          itemCount: filteredProducts.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 18,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.55,
-                          ),
-                          itemBuilder: (context, index) {
-                            return _ProductCard(
-                              product: filteredProducts[index],
-                            );
-                          },
-                        ),
-            ),
-          ],
+                    ),
+                  ),
+                )
+              else
+                GridView.builder(
+                  itemCount: filteredProducts.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 18,
+                    childAspectRatio: 0.68,
+                  ),
+                  itemBuilder: (context, index) {
+                    return _ProductCard(product: filteredProducts[index]);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -218,9 +216,10 @@ class _CategoryDrawerState extends State<_CategoryDrawer> {
 
   Future<void> _loadProfileImage() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedImage = prefs.getString('profile_image');
+    final savedImage = prefs.getString('profile_image') ??
+        prefs.getString('profileImageBase64');
 
-    if (savedImage != null && mounted) {
+    if (savedImage != null && savedImage.isNotEmpty && mounted) {
       setState(() {
         profileImageBytes = base64Decode(savedImage);
       });
@@ -236,18 +235,22 @@ class _CategoryDrawerState extends State<_CategoryDrawer> {
           children: [
             const SizedBox(height: 24),
             CircleAvatar(
-              radius: 42,
-              backgroundColor: const Color(0xFFECE6FF),
-              backgroundImage: profileImageBytes != null
-                  ? MemoryImage(profileImageBytes!)
-                  : null,
-              child: profileImageBytes == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 48,
-                      color: CategoryScreen.primaryBlue,
-                    )
-                  : null,
+              radius: 45,
+              backgroundColor: Colors.white,
+              child: CircleAvatar(
+                radius: 42,
+                backgroundColor: const Color(0xFFE7D9FF),
+                backgroundImage: profileImageBytes != null
+                    ? MemoryImage(profileImageBytes!)
+                    : null,
+                child: profileImageBytes == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 42,
+                        color: CategoryScreen.primaryBlue,
+                      )
+                    : null,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -340,32 +343,106 @@ class _Header extends StatelessWidget {
           builder: (context) {
             return GestureDetector(
               onTap: () => Scaffold.of(context).openDrawer(),
-              child: const Icon(Icons.menu_rounded, size: 27),
+              child: const Icon(Icons.menu_rounded, size: 24),
             );
           },
         ),
         const Spacer(),
         Row(
           children: [
-            Image.asset('assets/images/logo.png', width: 22, height: 22),
-            const SizedBox(width: 5),
+            Image.asset('assets/images/logo.png', width: 30, height: 30),
             const Text(
               'Tech',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
           ],
         ),
         const Spacer(),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const NotificationScreen()),
-            );
-          },
-          child: const Icon(Icons.notifications, size: 25),
-        ),
+        const _NotificationBell(),
       ],
+    );
+  }
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return IconButton(
+        icon: const Icon(Icons.notifications_rounded, size: 28),
+        onPressed: () {
+          Navigator.pushNamed(context, Routes.notifications);
+        },
+      );
+    }
+
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instance
+          .ref('users/${user.uid}/notifications')
+          .onValue,
+      builder: (context, snapshot) {
+        int unreadCount = 0;
+
+        final value = snapshot.data?.snapshot.value;
+
+        if (value is Map) {
+          for (final item in value.values) {
+            if (item is Map) {
+              final data = Map<String, dynamic>.from(item);
+              final isRead = data['isRead'] == true || data['read'] == true;
+
+              if (!isRead) {
+                unreadCount++;
+              }
+            }
+          }
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_rounded, size: 28),
+              onPressed: () {
+                Navigator.pushNamed(context, Routes.notifications);
+              },
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: CategoryScreen.primaryBlue,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    unreadCount > 99 ? '99+' : unreadCount.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -384,25 +461,21 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 43,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F7),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         decoration: InputDecoration(
-          icon: const Icon(Icons.search, size: 21),
+          icon: const Icon(Icons.search, color: Colors.black54),
           hintText: 'Search products...',
-          hintStyle: const TextStyle(fontSize: 12, color: Colors.black54),
           border: InputBorder.none,
           suffixIcon: controller.text.isNotEmpty
-              ? GestureDetector(
-                  onTap: onClear,
-                  child: const Icon(Icons.close, size: 18),
-                )
+              ? GestureDetector(onTap: onClear, child: const Icon(Icons.close))
               : null,
         ),
       ),
@@ -410,8 +483,8 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
+class _CategoryList extends StatelessWidget {
+  const _CategoryList({
     required this.categories,
     required this.selectedCategory,
     required this.onTap,
@@ -424,11 +497,11 @@ class _CategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 34,
+      height: 56,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final category = categories[index];
           final selected = selectedCategory == category;
@@ -436,20 +509,20 @@ class _CategoryChips extends StatelessWidget {
           return GestureDetector(
             onTap: () => onTap(category),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
               decoration: BoxDecoration(
                 color: selected
                     ? CategoryScreen.primaryBlue
                     : const Color(0xFFF5F5F7),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(28),
               ),
               child: Center(
                 child: Text(
                   category,
                   style: TextStyle(
-                    fontSize: 11,
                     color: selected ? Colors.white : Colors.black54,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -501,38 +574,36 @@ class _ProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 100,
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: const Color(0xFFF7F4FF),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Image.asset(
-                        product.imageUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) {
-                          return const Icon(
-                            Icons.devices_rounded,
-                            size: 42,
-                            color: Color(0xFF1607B8),
-                          );
-                        },
+              Expanded(
+                flex: 5,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.transparent,
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Image.asset(
+                          product.imageUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) {
+                            return const Icon(
+                              Icons.devices_rounded,
+                              size: 42,
+                              color: CategoryScreen.primaryBlue,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: GestureDetector(
-                        onTap: () {
-                          context
-                              .read<WishlistProvider>()
-                              .toggleProduct(product);
-                        },
-                        child: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: Colors.white,
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            context
+                                .read<WishlistProvider>()
+                                .toggleProduct(product);
+                          },
                           child: Icon(
                             isWishlisted
                                 ? Icons.favorite_rounded
@@ -542,13 +613,14 @@ class _ProductCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               Expanded(
+                flex: 3,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -557,39 +629,30 @@ class _ProductCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        product.brand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.black45,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
                         product.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Price: ${formatPrice(product.price)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      _ProductRating(productId: product.id),
-                      const Spacer(),
-                      Text(
-                        formatPrice(product.price),
-                        style: const TextStyle(
-                          color: Color(0xFF1607B8),
-                          fontSize: 14,
+                          color: CategoryScreen.primaryBlue,
+                          fontSize: 11,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -649,56 +712,6 @@ class _BottomNavBar extends StatelessWidget {
           label: 'Profile',
         ),
       ],
-    );
-  }
-}
-
-class _ProductRating extends StatelessWidget {
-  const _ProductRating({
-    required this.productId,
-  });
-
-  final String productId;
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<DatabaseEvent>(
-      stream:
-          FirebaseDatabase.instance.ref('products/$productId/reviews').onValue,
-      builder: (context, snapshot) {
-        double totalRating = 0;
-        int count = 0;
-
-        final value = snapshot.data?.snapshot.value;
-
-        if (value is Map) {
-          for (final item in value.values) {
-            if (item is Map) {
-              totalRating += (item['rating'] as num?)?.toDouble() ?? 0;
-              count++;
-            }
-          }
-        }
-
-        final average = count == 0 ? 0 : totalRating / count;
-
-        return Row(
-          children: [
-            const Icon(Icons.star_rounded, color: Colors.amber, size: 15),
-            const SizedBox(width: 3),
-            Text(
-              count == 0
-                  ? 'No reviews'
-                  : '${average.toStringAsFixed(1)} ($count)',
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.black54,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

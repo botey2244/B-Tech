@@ -10,10 +10,9 @@ class BTechApp extends StatelessWidget {
     return MaterialApp(
       title: 'B Tech',
       theme: AppTheme.lightTheme,
-      initialRoute: Routes.onboarding,
+      initialRoute: Routes.splash,
       onGenerateRoute: Routes.onGenerateRoute,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => MobileScreenFrame(child: child),
     );
   }
 }

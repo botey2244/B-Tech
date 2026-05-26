@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,9 +21,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  Future<void> _markOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', true);
+  }
+
   void _handlePrimaryAction() {
     if (_currentPage == _pages.length - 1) {
-      Navigator.pushNamed(context, '/login');
+      _markOnboardingSeen();
+      Navigator.pushReplacementNamed(context, '/login');
       return;
     }
 
@@ -312,7 +319,12 @@ class _OnboardingActions extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/login'),
+          onPressed: () {
+            // Mark onboarding as seen even if user skips via "Already have an account"
+            final state = context.findAncestorStateOfType<_OnboardingScreenState>();
+            state?._markOnboardingSeen();
+            Navigator.pushReplacementNamed(context, '/login');
+          },
           style: TextButton.styleFrom(
             foregroundColor: OnboardingScreen.primaryBlue,
             minimumSize: Size.zero,

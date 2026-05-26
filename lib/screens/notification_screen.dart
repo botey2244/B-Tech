@@ -57,7 +57,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (ref == null) return;
 
     for (final id in selectedIds) {
-      await ref.child(id).update({'isUnread': false});
+      await ref.child(id).update({
+        'isRead': true,
+        'isUnread': false,
+      });
     }
 
     setState(() {
@@ -83,7 +86,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> markOneAsRead(String id) async {
     final ref = _notificationRef;
     if (ref == null) return;
-    await ref.child(id).update({'isUnread': false});
+    await ref.child(id).update({
+      'isRead': true,
+      'isUnread': false,
+    });
+  }
+
+  Future<void> markOneAsUnread(String id) async {
+    final ref = _notificationRef;
+    if (ref == null) return;
+
+    await ref.child(id).update({
+      'isRead': false,
+      'isUnread': true,
+    });
   }
 
   Future<void> deleteOne(String id) async {
@@ -106,11 +122,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _BottomOption(
-                icon: Icons.mark_email_read_outlined,
-                title: 'Mark as read',
+                icon: Icons.mark_email_unread_outlined,
+                title: 'Mark as unread',
                 color: NotificationScreen.primaryBlue,
                 onTap: () async {
-                  await markOneAsRead(item.id);
+                  await markOneAsUnread(item.id);
                   if (context.mounted) Navigator.pop(context);
                 },
               ),
@@ -394,16 +410,105 @@ class _NotificationItem extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onMoreTap;
 
+  void _showDetail(BuildContext context) {
+    onTap();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 34),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const CircleAvatar(
+                radius: 32,
+                backgroundColor: Color(0xFFEDE7FF),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color: NotificationScreen.primaryBlue,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                item.message,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.45,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                item.time,
+                style: const TextStyle(
+                  color: Colors.black45,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: NotificationScreen.primaryBlue,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return InkWell(
+      onTap: isSelectMode ? onTap : () => _showDetail(context),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 116),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Color(0xFFD6D6D6)),
+            bottom: BorderSide(color: Color(0xFFE1E1E1)),
           ),
         ),
         child: Row(
@@ -415,47 +520,63 @@ class _NotificationItem extends StatelessWidget {
                 size: 22,
               )
             else
-              CircleAvatar(
-                radius: 6,
-                backgroundColor: item.isUnread
-                    ? NotificationScreen.primaryBlue
-                    : Colors.transparent,
+              Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: item.isUnread
+                      ? NotificationScreen.primaryBlue
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
               ),
-            const SizedBox(width: 18),
-            const CircleAvatar(
-              radius: 29,
-              backgroundColor: Color(0xFFEDE7FF),
-              child: Icon(
-                Icons.notifications_active_outlined,
+            const SizedBox(width: 14),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDDE8FF),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
                 color: NotificationScreen.primaryBlue,
                 size: 28,
               ),
             ),
-            const SizedBox(width: 18),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     item.message,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, height: 1.15),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 7),
                   Text(
                     item.time,
-                    style: const TextStyle(fontSize: 13),
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -464,6 +585,15 @@ class _NotificationItem extends StatelessWidget {
             GestureDetector(
               onTap: onMoreTap,
               child: const Icon(Icons.more_horiz, size: 24),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: () => _showDetail(context),
+              child: const Icon(
+                Icons.chevron_right_rounded,
+                size: 26,
+                color: Colors.black54,
+              ),
             ),
           ],
         ),

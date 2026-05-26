@@ -15,6 +15,9 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _primaryBlue = Color(0xFF1607B8);
   static const Color _fieldFill = Color(0xFFF0F0F0);
 
+  static const String _adminEmail = 'admin@btech.com';
+  static const String _adminPassword = 'admin123';
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -29,12 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your email and password.')),
       );
+      return;
+    }
+
+    if (email == _adminEmail && password == _adminPassword) {
+      Navigator.pushReplacementNamed(context, Routes.admin);
       return;
     }
 

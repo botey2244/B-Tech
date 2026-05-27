@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "425680522376",
+    "firebase_url": "https://b-tech-e6556-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "b-tech-e6556",
     "storage_bucket": "b-tech-e6556.firebasestorage.app"
   },
@@ -10,6 +11,25 @@
         "mobilesdk_app_id": "1:425680522376:android:e60ad100709e29106b233d",
         "android_client_info": {
           "package_name": "Btech.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxOAU4fKpJ6CGZ26-jV_VQl4IbVdG-FFI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:425680522376:android:ad3e17d01cec0d316b233d",
+        "android_client_info": {
+          "package_name": "com.example.b_tech"
         }
       },
       "oauth_client": [],

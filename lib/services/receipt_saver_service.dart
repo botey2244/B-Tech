@@ -7,7 +7,7 @@ import 'package:screenshot/screenshot.dart';
 /// Captures any widget and saves the result as a PNG image directly
 /// into the device's photo gallery (Photos app on Android/iOS).
 class ReceiptSaverService {
-  static final ScreenshotController _controller = ScreenshotController();
+  static final ScreenshotController controller = ScreenshotController();
 
   /// Captures the widget attached to [controller] and writes the PNG bytes to the gallery.
   ///
@@ -19,7 +19,7 @@ class ReceiptSaverService {
     try {
       // Small delay to ensure the widget is fully rendered
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final Uint8List? imageBytes = await controller.capture(
         pixelRatio: pixelRatio,
       );

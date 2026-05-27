@@ -943,60 +943,6 @@ class _CategoryList extends StatelessWidget {
   }
 }
 
-class _ProductRating extends StatelessWidget {
-  const _ProductRating({
-    required this.productId,
-  });
-
-  final String productId;
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<DatabaseEvent>(
-      stream:
-          FirebaseDatabase.instance.ref('products/$productId/reviews').onValue,
-      builder: (context, snapshot) {
-        double totalRating = 0;
-        int count = 0;
-
-        final value = snapshot.data?.snapshot.value;
-
-        if (value is Map) {
-          for (final item in value.values) {
-            if (item is Map) {
-              totalRating += (item['rating'] as num?)?.toDouble() ?? 0;
-              count++;
-            }
-          }
-        }
-
-        final average = count == 0 ? 0 : totalRating / count;
-
-        return Row(
-          children: [
-            const Icon(
-              Icons.star_rounded,
-              color: Colors.amber,
-              size: 15,
-            ),
-            const SizedBox(width: 3),
-            Text(
-              count == 0
-                  ? 'No reviews'
-                  : '${average.toStringAsFixed(1)} ($count)',
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.black54,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
